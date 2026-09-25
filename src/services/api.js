@@ -1,6 +1,7 @@
 // This is the main communication bridge between our React frontend and Java Spring Boot backend
 // Think of it like a translator that helps the website talk to the database server
 // All the functions here send requests to get data, save data, update data, or delete data
+// src/services/api.js
 
 // API service for backend integration
 const API_BASE_URL = import.meta.env.PROD ? '/api/proxy/api' : 'http://localhost:8081/api';

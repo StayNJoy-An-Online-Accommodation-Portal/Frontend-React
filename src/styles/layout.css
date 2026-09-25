@@ -1,0 +1,48 @@
+/* Global Layout Variables */
+:root {
+  --navbar-height: 80px;
+  --navbar-z-index: 1020;
+  --dropdown-z-index: 1030;
+  --modal-z-index: 1050;
+  --tooltip-z-index: 1070;
+  --app-background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+/* Global Background */
+body, #root {
+  background: var(--app-background) !important;
+  min-height: 100vh;
+}
+
+/* Fixed Navbar Layout */
+.app-layout {
+  min-height: 100vh;
+  background: var(--app-background);
+}
+
+.navbar-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--navbar-height);
+  z-index: var(--navbar-z-index);
+  background: var(--app-background);
+}
+
+.main-content {
+  margin-top: var(--navbar-height);
+  min-height: calc(100vh - var(--navbar-height));
+  background: var(--app-background);
+}
+
+/* Dropdown Portal */
+.dropdown-portal {
+  position: fixed;
+  z-index: var(--dropdown-z-index);
+}
+
+/* Sticky Content Offset */
+.sticky-content {
+  top: calc(var(--navbar-height) + 1rem) !important;
+}
