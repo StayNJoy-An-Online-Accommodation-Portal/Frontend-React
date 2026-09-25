@@ -1,94 +1,125 @@
+// This is the form where property owners can add new properties to rent out
+// It's like filling out a listing form - they enter details, upload photos, and submit for approval
+// Once submitted, the property goes to admin for approval before appearing on the website
+
 import React from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { authUtils } from "../../utils/auth";
+import apiService from "../../services/api";
 
 const AddProperty = () => {
-  const navigate = useNavigate();
-  const { handlePropertyAdded } = useOutletContext();
+  const navigate = useNavigate(); // For moving between pages
+  const { handlePropertyAdded } = useOutletContext(); // Function from parent component (not currently used)
+  
+  // This stores all the form data as the user types
   const [formData, setFormData] = React.useState({
-    title: '',
-    location: '',
-    pricePerNight: '',
-    description: '',
-    maxGuests: '',
-    amenities: [],
-    images: []
+    title: '', // Property name like "Cozy Beach Villa"
+    location: '', // Where it's located like "Goa, India"
+    pricePerNight: '', // How much per night in rupees
+    description: '', // Detailed description of the property
+    maxGuests: '', // Maximum number of people who can stay
+    amenities: [], // List of features like WiFi, AC, Pool etc.
+    images: [] // Photos of the property
   });
-  const [loading, setLoading] = React.useState(false);
+  
+  const [loading, setLoading] = React.useState(false); // Shows spinner while submitting
 
+  // List of amenities that property owners can choose from
   const amenitiesList = ['WiFi', 'AC', 'Kitchen', 'Pool', 'Parking', 'Gym', 'Balcony', 'TV'];
 
-  // Extract inline styles to local style objects
-  const cardStyle = { borderRadius: '12px' };
+  // Styling to make the form look nice
+  const cardStyle = { borderRadius: '12px' }; // Rounded corners for the form card
   const buttonStyle = {
-    background: '#ff385c', 
+    background: '#ff385c', // StayNJoy brand color
     border: 'none', 
     borderRadius: '8px'
   };
   const imageStyle = { 
-    height: '100px', 
-    objectFit: 'cover', 
+    height: '100px', // Fixed height for uploaded image previews
+    objectFit: 'cover', // Crop images nicely
     width: '100%' 
   };
 
+  // When user clicks the back arrow, take them back to property dashboard
   const handleBack = () => {
     navigate('/property-dashboard');
   };
 
+  // When user types in any text field, update the form data
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value } = e.target; // Get which field and what they typed
+    setFormData(prev => ({ ...prev, [name]: value })); // Update that specific field
   };
 
+  // When user clicks checkboxes for amenities (WiFi, AC, etc.)
   const handleAmenityChange = (amenity) => {
     setFormData(prev => ({
       ...prev,
       amenities: prev.amenities.includes(amenity)
-        ? prev.amenities.filter(a => a !== amenity)
-        : [...prev.amenities, amenity]
+        ? prev.amenities.filter(a => a !== amenity) // Remove if already selected
+        : [...prev.amenities, amenity] // Add if not selected
     }));
   };
 
+  // When user selects image files to upload
   const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    const imageUrls = files.map(file => URL.createObjectURL(file));
-    setFormData(prev => ({ ...prev, images: [...prev.images, ...imageUrls] }));
+    const files = Array.from(e.target.files); // Get all selected files
+    
+    // Convert each image file to base64 format for storage
+    files.forEach(file => {
+      const reader = new FileReader(); // Browser tool to read files
+      reader.onload = (event) => {
+        const base64String = event.target.result; // The image as text data
+        setFormData(prev => ({ 
+          ...prev, 
+          images: [...prev.images, base64String] // Add to existing images
+        }));
+      };
+      reader.readAsDataURL(file); // Start converting file to base64
+    });
+    
+    // Clear the file input so user can select same file again if needed
+    e.target.value = '';
   };
 
+  // When user clicks X button to remove an uploaded image
   const removeImage = (index) => {
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      images: prev.images.filter((_, i) => i !== index) // Remove image at that position
     }));
   };
 
+  // When user clicks "Add Property" button to submit the form
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+    e.preventDefault(); // Don't refresh the page
+    setLoading(true); // Show loading spinner
 
     try {
+      // Prepare the data to send to the server
       const newProperty = {
-        ...formData,
-        pricePerNight: parseInt(formData.pricePerNight),
-        maxGuests: parseInt(formData.maxGuests),
-        ownerEmail: localStorage.getItem('userEmail'),
-        image: formData.images[0] || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400',
-        rating: 5.0,
-        reviews: 0,
-        nights: 1,
-        checkIn: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-        checkOut: new Date(Date.now() + 86400000).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+        title: formData.title,
+        location: formData.location,
+        pricePerNight: parseInt(formData.pricePerNight), // Convert text to number
+        description: formData.description,
+        maxGuests: parseInt(formData.maxGuests), // Convert text to number
+        amenities: formData.amenities,
+        images: formData.images // Send the base64 image data
       };
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log('Submitting property:', newProperty);
       
-      if (handlePropertyAdded) handlePropertyAdded(newProperty);
-      navigate('/property-dashboard');
+      // Send the property data to the backend server
+      const result = await apiService.createProperty(newProperty);
+      console.log('Property created successfully:', result);
+      
+      alert('Property added successfully!'); // Show success message
+      navigate('/property-dashboard'); // Go back to dashboard
     } catch (error) {
       console.error('Error adding property:', error);
+      alert(`Failed to add property: ${error.message}`); // Show error message
     } finally {
-      setLoading(false);
+      setLoading(false); // Hide loading spinner
     }
   };
 

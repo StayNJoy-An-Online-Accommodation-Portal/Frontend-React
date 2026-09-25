@@ -8,7 +8,8 @@ import RoomDetails from "../Room/RoomDetails";
 import ConfirmBooking from "../ConfirmBooking/ConfirmBooking";
 import Login from "../Login/Login";
 import ChatBot from "../ChatBot/ChatBot";
-import { dataStore } from "../../utils/dataStore";
+import { dataStore } from "../../utils/enhancedDataStore";
+import apiService from "../../services/api";
 
 const HomePage = () => {
   const [bookings, setBookings] = useState([]);
@@ -25,16 +26,42 @@ const HomePage = () => {
   const [showChatBot, setShowChatBot] = useState(false);
 
   useEffect(() => {
-    const rooms = dataStore.getAllRooms();
-    setAllRooms(rooms);
-    setFilteredRooms(rooms);
-
-    const unsubscribe = dataStore.subscribe((updatedRooms) => {
-      setAllRooms(updatedRooms);
-      setFilteredRooms(updatedRooms);
-    });
-
-    return unsubscribe;
+    const loadRooms = async () => {
+      try {
+        const rooms = await dataStore.getAllRooms();
+        console.log('Loaded rooms from database:', rooms);
+        // Map database format to frontend format
+        const mappedRooms = rooms.map(room => {
+          // Generate dynamic dates (today + 1 day for checkin, today + 3 days for checkout)
+          const today = new Date();
+          const checkInDate = new Date(today);
+          checkInDate.setDate(today.getDate() + 1);
+          const checkOutDate = new Date(today);
+          checkOutDate.setDate(today.getDate() + 3);
+          
+          const formatDate = (date) => {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${date.getDate()} ${months[date.getMonth()]}`;
+          };
+          
+          return {
+            ...room,
+            price: room.pricePerNight || room.price,
+            image: room.images && room.images.length > 0 ? room.images[0] : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400',
+            nights: 2,
+            checkIn: formatDate(checkInDate),
+            checkOut: formatDate(checkOutDate),
+            amenities: room.amenities || []
+          };
+        });
+        setAllRooms(mappedRooms);
+        setFilteredRooms(mappedRooms);
+      } catch (error) {
+        console.error('Failed to load rooms:', error);
+      }
+    };
+    
+    loadRooms();
   }, []);
 
   useEffect(() => {
@@ -87,13 +114,19 @@ const HomePage = () => {
     setSelectedRoom(null);
   };
 
-  const handleBookRoom = (room) => {
-    // Add to global bookings
-    dataStore.addBooking(room);
-    // Add to local cart
-    setBookings(prev => [...prev, room]);
-    setShowDetails(false);
-    setSelectedRoom(null);
+  const handleBookRoom = async (room) => {
+    try {
+      // Add to local cart only, don't save to database yet
+      setBookings(prev => [...prev, room]);
+      setShowDetails(false);
+      setSelectedRoom(null);
+    } catch (error) {
+      console.error('Failed to book room:', error);
+      // Still add to local cart as fallback
+      setBookings(prev => [...prev, room]);
+      setShowDetails(false);
+      setSelectedRoom(null);
+    }
   };
 
   const handleReserve = (bookings) => {

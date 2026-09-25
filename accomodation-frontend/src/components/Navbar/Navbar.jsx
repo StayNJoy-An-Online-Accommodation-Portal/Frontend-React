@@ -195,7 +195,7 @@ const Navbar = ({
           <div className="d-flex align-items-center">
             <h4 className="mb-0 fw-bold text-primary" style={{ cursor: 'pointer' }} onClick={onLogoClick}>
               <i className="fas fa-home me-2"></i>
-              StayEase
+              StayNJoy
             </h4>
           </div>
 

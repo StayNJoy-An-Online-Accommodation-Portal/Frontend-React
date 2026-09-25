@@ -1,143 +1,231 @@
+// This is the main control panel for administrators of the StayNJoy platform
+// Admins can see overall statistics, manage users, approve/reject properties, view bookings, and handle complaints
+// It's like a command center where admins oversee the entire platform
+
 import React, { useState, useEffect } from 'react';
-import { mockUsers } from '../../data/mockData';
-import { dataStore } from '../../utils/dataStore';
+import apiService from '../../services/api';
 import Toast from '../Toast/Toast';
 
 const AdminDashboard = () => {
+  // These store which tab is currently active (dashboard, users, properties, bookings)
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [showUserDetails, setShowUserDetails] = useState(false);
-  const [selectedProperty, setSelectedProperty] = useState(null);
-  const [showPropertyImages, setShowPropertyImages] = useState(false);
-  const [complaints, setComplaints] = useState([]);
-  const [bookings, setBookings] = useState([
-    { id: 1, customer: 'John Doe', property: 'Cozy Apartment', checkIn: '2024-01-20', checkOut: '2024-01-25', amount: 12500, status: 'Completed' },
-    { id: 2, customer: 'Jane Smith', property: 'Beach Villa', checkIn: '2024-02-01', checkOut: '2024-02-05', amount: 20000, status: 'Active' },
-    { id: 3, customer: 'Mike Wilson', property: 'City Hotel Room', checkIn: '2024-01-28', checkOut: '2024-01-30', amount: 6000, status: 'Cancelled' }
-  ]);
+  
+  // For user details popup
+  const [selectedUser, setSelectedUser] = useState(null); // Which user is selected
+  const [showUserDetails, setShowUserDetails] = useState(false); // Should we show user popup?
+  
+  // For property images popup
+  const [selectedProperty, setSelectedProperty] = useState(null); // Which property is selected
+  const [showPropertyImages, setShowPropertyImages] = useState(false); // Should we show property images?
+  
+  // Data from database
+  const [complaints, setComplaints] = useState([]); // List of customer complaints
+  const [bookings, setBookings] = useState([]); // List of all bookings
+  const [users, setUsers] = useState([]); // List of all users
+  const [properties, setProperties] = useState([]); // List of all properties
 
+  // For showing success/error messages
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
-  // Mock data
-  const [users, setUsers] = useState([
-    { id: 1, name: 'John Doe', email: 'john@email.com', type: 'Guest', status: 'Active', joinDate: '2024-01-15' },
-    { id: 2, name: 'Jane Smith', email: 'jane@email.com', type: 'Host', status: 'Active', joinDate: '2024-02-10' },
-    { id: 3, name: 'Mike Wilson', email: 'mike@email.com', type: 'Guest', status: 'Blocked', joinDate: '2024-01-20' }
-  ]);
+  // This runs when the admin dashboard first loads - gets all data from database
+  useEffect(() => {
+    const loadData = async () => {
+      // Get all properties (including pending ones that need approval)
+      try {
+        const allProperties = await apiService.getAllPropertiesForAdmin();
+        console.log('Admin loaded properties:', allProperties);
+        if (allProperties && allProperties.length > 0) {
+          // Make the data look nice for display in tables
+          const mappedProperties = allProperties.map(property => ({
+            ...property,
+            owner: property.ownerName || property.ownerEmail, // Show owner name or email
+            price: `₹${property.pricePerNight}`, // Add rupee symbol
+            images: property.images || ['https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400'] // Fallback image
+          }));
+          setProperties(mappedProperties);
+        } else {
+          console.log('No properties found, using fallback');
+          setProperties([]);
+        }
+      } catch (error) {
+        console.error('Failed to load properties:', error);
+        setProperties([]);
+      }
 
-  const [properties, setProperties] = useState([
-    { 
-      id: 1, 
-      title: 'Cozy Apartment', 
-      owner: 'Jane Smith', 
-      status: 'Approved', 
-      location: 'Mumbai', 
-      price: '₹2500',
-      images: [
-        'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400',
-        'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400',
-        'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400'
-      ]
-    },
-    { 
-      id: 2, 
-      title: 'Beach Villa', 
-      owner: 'Alex Brown', 
-      status: 'Pending', 
-      location: 'Goa', 
-      price: '₹5000',
-      images: [
-        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400',
-        'https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=400',
-        'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400'
-      ]
-    },
-    { 
-      id: 3, 
-      title: 'City Hotel Room', 
-      owner: 'Sarah Davis', 
-      status: 'Rejected', 
-      location: 'Delhi', 
-      price: '₹3000',
-      images: [
-        'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=400',
-        'https://images.unsplash.com/photo-1590490360182-c33d57733427?w=400',
-        'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=400'
-      ]
-    }
-  ]);
+      // Get all bookings made by customers
+      try {
+        const allBookings = await apiService.getAllBookings();
+        console.log('Admin loaded bookings:', allBookings);
+        if (allBookings && allBookings.length > 0) {
+          // Format booking data for display
+          const mappedBookings = allBookings.map(booking => ({
+            ...booking,
+            customer: booking.guestName || booking.guestEmail, // Show customer name or email
+            property: booking.propertyTitle || booking.propertyName, // Show property name
+            checkIn: booking.checkInDate,
+            checkOut: booking.checkOutDate,
+            amount: booking.totalAmount || booking.amount
+          }));
+          setBookings(mappedBookings);
+        } else {
+          setBookings([]);
+        }
+      } catch (error) {
+        console.error('Failed to load bookings:', error);
+        setBookings([]);
+      }
 
+      // Get all registered users
+      try {
+        const allUsers = await apiService.getAllUsers();
+        console.log('Admin loaded users:', allUsers);
+        if (allUsers && allUsers.length > 0) {
+          // Format user data for display
+          const mappedUsers = allUsers.map(user => ({
+            ...user,
+            name: user.name || user.username || user.email, // Use name, or fallback to email
+            type: user.role === 'property_owner' ? 'Host' : 'Guest', // Friendly role names
+            status: user.status === 'ACTIVE' ? 'Active' : 'Blocked', // Friendly status names
+            joinDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A' // Format join date
+          }));
+          setUsers(mappedUsers);
+        } else {
+          setUsers([]);
+        }
+      } catch (error) {
+        console.error('Failed to load users:', error);
+        setUsers([]);
+      }
+
+      // Get all customer complaints
+      try {
+        const allComplaints = await apiService.getAllComplaints();
+        setComplaints(allComplaints);
+      } catch (error) {
+        console.error('Failed to load complaints:', error);
+        setComplaints([]);
+      }
+    };
+    
+    loadData(); // Actually run the data loading
+  }, []); // Empty array means this only runs once when page loads
+
+  // Listen for admin actions (not currently used but ready for future features)
   useEffect(() => {
     const handleAdminAction = (event) => {
       const action = event.detail;
       showToast(`Admin action: ${action.type}`, 'info');
     };
     
-    // Load complaints from dataStore
-    setComplaints(dataStore.getAllComplaints());
-    
     window.addEventListener('adminAction', handleAdminAction);
     return () => window.removeEventListener('adminAction', handleAdminAction);
   }, []);
 
+  // Function to show toast messages (success, error, warning)
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
   };
 
+  // When admin clicks "View Details" button for a user
   const handleViewUserDetails = (userId) => {
-    // Find user from local users array first
     const localUser = users.find(u => u.id === userId);
     if (localUser) {
-      // Try to find matching user in mockUsers by email
-      const mockUser = mockUsers.find(u => u.email === localUser.email);
-      // Use mockUser data if available, otherwise use localUser
-      const userToShow = mockUser || {
+      const userToShow = {
         ...localUser,
         role: localUser.type === 'Host' ? 'property_owner' : 'user'
       };
       setSelectedUser(userToShow);
-      setShowUserDetails(true);
+      setShowUserDetails(true); // This opens the user details popup
     }
   };
 
+  // When admin closes the user details popup
   const handleCloseUserDetails = () => {
     setSelectedUser(null);
     setShowUserDetails(false);
   };
 
+  // When admin clicks on a property title to see its images
   const handleViewPropertyImages = (propertyId) => {
     const property = properties.find(p => p.id === propertyId);
     if (property) {
       setSelectedProperty(property);
-      setShowPropertyImages(true);
+      setShowPropertyImages(true); // This opens the property images popup
     }
   };
 
+  // When admin closes the property images popup
   const handleClosePropertyImages = () => {
     setSelectedProperty(null);
     setShowPropertyImages(false);
   };
 
-  const toggleUserStatus = (userId) => {
-    const user = users.find(u => u.id === userId);
-    const newStatus = user.status === 'Active' ? 'Blocked' : 'Active';
-    setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus } : u));
-    dataStore.updateUserStatus(user.email, newStatus);
-    showToast(`User ${user.name} ${newStatus}`);
+  // When admin clicks Block/Unblock button for a user
+  const toggleUserStatus = async (userId) => {
+    try {
+      // Tell the server to change user status
+      await apiService.toggleUserStatus(userId);
+      
+      // Refresh the user list to show the change
+      const allUsers = await apiService.getAllUsers();
+      const mappedUsers = allUsers.map(user => ({
+        ...user,
+        type: user.role === 'property_owner' ? 'Host' : 'Guest',
+        status: user.status === 'ACTIVE' ? 'Active' : 'Blocked',
+        joinDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'
+      }));
+      setUsers(mappedUsers);
+      
+      const user = users.find(u => u.id === userId);
+      showToast(`User ${user?.name || 'User'} status updated`);
+    } catch (error) {
+      console.error('Failed to update user status:', error);
+      showToast('Failed to update user status', 'error');
+    }
   };
 
-  const updatePropertyStatus = (propertyId, newStatus) => {
-    const property = properties.find(p => p.id === propertyId);
-    setProperties(properties.map(p => p.id === propertyId ? { ...p, status: newStatus } : p));
-    dataStore.updatePropertyStatus(propertyId, newStatus);
-    showToast(`Property ${newStatus}`);
+  // When admin clicks Approve/Reject buttons for a property
+  const updatePropertyStatus = async (propertyId, newStatus) => {
+    try {
+      // Tell the server to change property status
+      await apiService.updatePropertyStatus(propertyId, newStatus);
+      
+      // Refresh the property list to show the change
+      const allProperties = await apiService.getAllPropertiesForAdmin();
+      const mappedProperties = allProperties.map(property => ({
+        ...property,
+        owner: property.ownerName || property.ownerEmail,
+        price: `₹${property.pricePerNight}`,
+        images: property.images || ['https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400']
+      }));
+      setProperties(mappedProperties);
+      showToast(`Property ${newStatus}`);
+    } catch (error) {
+      console.error('Failed to update property status:', error);
+      showToast('Failed to update property status', 'error');
+    }
   };
 
-  const deleteProperty = (propertyId) => {
-    const property = properties.find(p => p.id === propertyId);
-    setProperties(properties.filter(p => p.id !== propertyId));
-    dataStore.deleteProperty(propertyId);
-    showToast(`Property deleted`, 'warning');
+  // When admin clicks Delete button for a property
+  const deleteProperty = async (propertyId) => {
+    try {
+      // Tell the server to delete the property
+      await apiService.deleteProperty(propertyId);
+      
+      // Remove the property from the list immediately
+      setProperties(properties.filter(p => p.id !== propertyId));
+      showToast(`Property deleted successfully`, 'success');
+    } catch (error) {
+      console.error('Failed to delete property:', error);
+      const errorMessage = error.message || 'Failed to delete property';
+      
+      // Show different colored messages based on the error
+      if (errorMessage.includes('active bookings')) {
+        showToast(errorMessage, 'warning'); // Orange warning if property has active bookings
+      } else {
+        showToast(errorMessage, 'error'); // Red error for other problems
+      }
+    }
   };
 
   return (
@@ -287,24 +375,30 @@ const AdminDashboard = () => {
                     <tbody>
                       {complaints.map(complaint => (
                         <tr key={complaint.id}>
-                          <td className="fw-semibold">{complaint.customer}</td>
-                          <td>{complaint.property}</td>
+                          <td className="fw-semibold">{complaint.user?.name || complaint.customer}</td>
+                          <td>{complaint.property?.title || complaint.property}</td>
                           <td>{complaint.issue}</td>
-                          <td>{complaint.date}</td>
+                          <td>{new Date(complaint.createdAt).toLocaleDateString() || complaint.date}</td>
                           <td>
-                            <span className={`badge ${complaint.status === 'Resolved' ? 'bg-success' : 'bg-warning'}`}>
+                            <span className={`badge ${complaint.status === 'RESOLVED' || complaint.status === 'Resolved' ? 'bg-success' : 'bg-warning'}`}>
                               {complaint.status}
                             </span>
                           </td>
                           <td>
-                            {complaint.status === 'Pending' && (
+                            {(complaint.status === 'PENDING' || complaint.status === 'Pending') && (
                               <button 
                                 className="btn btn-sm btn-success"
-                                onClick={() => {
-                                  const updatedComplaint = dataStore.updateComplaintStatus(complaint.id, 'Resolved');
-                                  if (updatedComplaint) {
-                                    setComplaints(dataStore.getAllComplaints());
+                                onClick={async () => {
+                                  try {
+                                    await apiService.updateComplaintStatus(complaint.id, {
+                                      status: 'RESOLVED',
+                                      adminResponse: 'Issue resolved by admin'
+                                    });
+                                    const updatedComplaints = await apiService.getAllComplaints();
+                                    setComplaints(updatedComplaints);
                                     showToast('Complaint resolved');
+                                  } catch (error) {
+                                    showToast('Failed to resolve complaint', 'error');
                                   }
                                 }}
                               >
@@ -423,17 +517,17 @@ const AdminDashboard = () => {
                           </span>
                         </td>
                         <td>
-                          {property.status === 'Pending' && (
+                          {(property.status === 'Pending' || property.status === 'PENDING' || !property.status) && (
                             <>
                               <button 
                                 className="btn btn-sm btn-success me-2"
-                                onClick={() => updatePropertyStatus(property.id, 'Approved')}
+                                onClick={() => updatePropertyStatus(property.id, 'APPROVED')}
                               >
                                 Approve
                               </button>
                               <button 
                                 className="btn btn-sm btn-warning me-2"
-                                onClick={() => updatePropertyStatus(property.id, 'Rejected')}
+                                onClick={() => updatePropertyStatus(property.id, 'REJECTED')}
                               >
                                 Reject
                               </button>

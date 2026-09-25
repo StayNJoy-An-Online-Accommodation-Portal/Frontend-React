@@ -216,7 +216,18 @@ export default function EditProperty({ property, onClose, onSave }) {
   };
 
   const handleSave = () => {
-    onSave(form);
+    // Ensure the form data matches the backend DTO structure
+    const updatedProperty = {
+      title: form.title || '',
+      location: form.location || '',
+      pricePerNight: parseFloat(form.pricePerNight) || 0,
+      description: form.description || '',
+      maxGuests: parseInt(form.maxGuests) || 1,
+      amenities: form.amenities || [],
+      images: form.images || []
+    };
+    console.log('Saving property with data:', updatedProperty);
+    onSave(updatedProperty);
     onClose();
   };
 
@@ -338,6 +349,31 @@ export default function EditProperty({ property, onClose, onSave }) {
                 setForm({ ...form, pricePerNight: Number(e.target.value) })
               }
               min="1"
+            />
+          </div>
+
+          {/* Title */}
+          <div style={styles.section}>
+            <h4 style={styles.sectionTitle}>Property Title</h4>
+            <input
+              type="text"
+              style={styles.priceInput}
+              value={form.title}
+              onChange={(e) =>
+                setForm({ ...form, title: e.target.value })
+              }
+            />
+          </div>
+
+          {/* Description */}
+          <div style={styles.section}>
+            <h4 style={styles.sectionTitle}>Description</h4>
+            <textarea
+              style={{...styles.priceInput, minHeight: '80px'}}
+              value={form.description || ''}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
             />
           </div>
         </div>

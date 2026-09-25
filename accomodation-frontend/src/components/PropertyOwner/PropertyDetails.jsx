@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { dataStore } from '../../utils/dataStore';
+import apiService from '../../services/api';
 
 const PropertyDetails = ({ property, show, onClose }) => {
   const [bookings, setBookings] = useState([]);
@@ -7,25 +7,32 @@ const PropertyDetails = ({ property, show, onClose }) => {
 
   useEffect(() => {
     if (show && property) {
-      // Get bookings for this property
-      const allBookings = dataStore.getAllBookings();
-      const propertyBookings = allBookings.filter(booking => booking.id === property.id);
-      setBookings(propertyBookings);
-
-      // Mock reviews data
-      setReviews([
-        { id: 1, customer: 'John Doe', rating: 5, comment: 'Amazing property! Very clean and comfortable.', date: '2024-01-15' },
-        { id: 2, customer: 'Jane Smith', rating: 4, comment: 'Great location and amenities. Would recommend!', date: '2024-01-10' },
-        { id: 3, customer: 'Mike Wilson', rating: 5, comment: 'Perfect for our vacation. Host was very responsive.', date: '2024-01-05' }
-      ]);
+      loadPropertyAnalytics();
     }
   }, [show, property]);
 
+  const loadPropertyAnalytics = async () => {
+    try {
+      // Get all bookings and filter for this property
+      const allBookings = await apiService.getAllBookings();
+      const propertyBookings = allBookings.filter(booking => booking.propertyId === property.id);
+      setBookings(propertyBookings);
+
+      // Get real reviews from database
+      const propertyReviews = await apiService.getPropertyReviews(property.id);
+      setReviews(propertyReviews);
+    } catch (error) {
+      console.error('Failed to load property analytics:', error);
+      setBookings([]);
+      setReviews([]);
+    }
+  };
+
   if (!show || !property) return null;
 
-  const totalRevenue = bookings.reduce((sum, booking) => sum + (booking.totalPrice || 0), 0);
-  const completedBookings = bookings.filter(booking => booking.status !== 'Cancelled').length;
-  const averageRating = reviews.length > 0 ? (reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length).toFixed(1) : '0.0';
+  const totalRevenue = property?.earnAmount || 0;
+  const completedBookings = property?.bookingCount || 0;
+  const averageRating = property?.averageRating || 0;
 
   return (
     <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -60,7 +67,7 @@ const PropertyDetails = ({ property, show, onClose }) => {
                 <div className="card border-0 bg-warning text-white text-center">
                   <div className="card-body">
                     <i className="fas fa-star fs-1 mb-2"></i>
-                    <h4 className="fw-bold">{averageRating}</h4>
+                    <h4 className="fw-bold">{averageRating ? averageRating.toFixed(1) : 'N/A'}</h4>
                     <p className="mb-0">Average Rating</p>
                   </div>
                 </div>
@@ -97,14 +104,20 @@ const PropertyDetails = ({ property, show, onClose }) => {
                           </thead>
                           <tbody>
                             {bookings.slice(0, 5).map((booking, index) => (
-                              <tr key={index}>
-                                <td className="fw-semibold">Guest {index + 1}</td>
+                              <tr key={booking.id || index}>
+                                <td className="fw-semibold">{booking.userName || `Guest ${index + 1}`}</td>
                                 <td>
-                                  <small>{booking.checkIn} - {booking.checkOut}</small>
+                                  <small>{booking.checkInDate} - {booking.checkOutDate}</small>
                                 </td>
-                                <td className="text-success fw-bold">₹{booking.totalPrice?.toLocaleString()}</td>
+                                <td className="text-success fw-bold">
+                                  {booking.status === 'CANCELLED' ? (
+                                    <span className="text-danger">₹0 (Refunded)</span>
+                                  ) : (
+                                    `₹${booking.totalAmount?.toLocaleString()}`
+                                  )}
+                                </td>
                                 <td>
-                                  <span className={`badge ${booking.status === 'Cancelled' ? 'bg-danger' : 'bg-success'}`}>
+                                  <span className={`badge ${booking.status === 'CANCELLED' ? 'bg-danger' : 'bg-success'}`}>
                                     {booking.status || 'Completed'}
                                   </span>
                                 </td>
@@ -136,16 +149,16 @@ const PropertyDetails = ({ property, show, onClose }) => {
                           <div key={review.id} className="mb-3 pb-3 border-bottom">
                             <div className="d-flex justify-content-between align-items-start mb-2">
                               <div>
-                                <h6 className="fw-bold mb-1">{review.customer}</h6>
+                                <h6 className="fw-bold mb-1">{review.userName}</h6>
                                 <div className="text-warning">
                                   {[...Array(5)].map((_, i) => (
                                     <i key={i} className={`fas fa-star ${i < review.rating ? '' : 'text-muted'}`}></i>
                                   ))}
                                 </div>
                               </div>
-                              <small className="text-muted">{review.date}</small>
+                              <small className="text-muted">{new Date(review.createdAt).toLocaleDateString()}</small>
                             </div>
-                            <p className="text-muted mb-0">{review.comment}</p>
+                            <p className="text-muted mb-0">{review.comment || 'No comment provided'}</p>
                           </div>
                         ))}
                       </div>

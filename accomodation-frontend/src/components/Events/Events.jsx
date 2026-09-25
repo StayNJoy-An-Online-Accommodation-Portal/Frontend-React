@@ -3,20 +3,20 @@ import React from 'react';
 const Events = () => {
   const events = [
     {
-      title: 'StayEase Travel Summit 2024',
-      date: 'March 15-17, 2024',
+      title: 'StayEase Travel Summit 2026',
+      date: 'March 15-17, 2026',
       location: 'Mumbai, India',
       description: 'Join industry leaders for networking and insights into the future of travel.'
     },
     {
       title: 'Host Appreciation Week',
-      date: 'April 1-7, 2024',
+      date: 'April 1-7, 2026',
       location: 'Global',
       description: 'Celebrating our amazing hosts with special rewards and recognition.'
     },
     {
       title: 'Tech Innovation Conference',
-      date: 'June 20-22, 2024',
+      date: 'June 20-22, 2026',
       location: 'Bangalore, India',
       description: 'Exploring cutting-edge technology in hospitality and travel booking.'
     }

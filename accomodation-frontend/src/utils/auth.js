@@ -1,4 +1,6 @@
 // Auth utility for global state management
+import apiService from '../services/api';
+
 export const AUTH_EVENTS = {
   LOGIN: 'auth:login',
   LOGOUT: 'auth:logout'
@@ -24,13 +26,20 @@ export const authUtils = {
     }));
   },
 
-  logout: () => {
+  logout: async () => {
+    try {
+      await apiService.logout();
+    } catch (error) {
+      console.warn('Logout API call failed, proceeding with local logout');
+    }
+    
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userName');
     localStorage.removeItem('userRole');
     localStorage.removeItem('pendingBookings');
     localStorage.removeItem('redirectAfterLogin');
+    localStorage.removeItem('authToken');
     
     // Dispatch global event
     window.dispatchEvent(new CustomEvent(AUTH_EVENTS.LOGOUT));

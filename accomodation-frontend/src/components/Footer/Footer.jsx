@@ -79,7 +79,7 @@ const Footer = () => {
       {/* Bottom Bar */}
       <div className="border-top py-3 text-center text-muted small">
         <div className="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
-          <p className="mb-0">&copy; {new Date().getFullYear()} StayEase, All rights reserved.</p>
+          <p className="mb-0">&copy; {new Date().getFullYear()} StayNJoy, All rights reserved.</p>
           <div className="d-flex gap-3">
             {legalLinks.map((link, index) => (
               <Link 

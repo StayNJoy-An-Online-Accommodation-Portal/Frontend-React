@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authUtils } from '../../utils/auth';
-import { mockUsers } from '../../data/mockData';
-import { dataStore } from '../../utils/dataStore';
+import apiService from '../../services/api';
+import { dataStore } from '../../utils/enhancedDataStore';
 import Toast from '../Toast/Toast';
+import RatingModal from '../RatingModal/RatingModal';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -15,19 +16,67 @@ const Profile = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'error' });
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
 
   useEffect(() => {
-    const userEmail = localStorage.getItem('userEmail');
-    const userData = mockUsers.find(u => u.email === userEmail);
-    if (userData) {
-      setUser(userData);
-      // Get user's booking history
-      const allBookings = dataStore.getAllBookings();
-      const userBookingHistory = allBookings.filter(booking => booking.userId === userEmail);
-      setUserBookings(userBookingHistory);
-    } else {
-      navigate('/login');
-    }
+    const loadUserProfile = async () => {
+      try {
+        const userEmail = localStorage.getItem('userEmail');
+        if (!userEmail) {
+          navigate('/login');
+          return;
+        }
+        
+        // Get user profile from backend API
+        try {
+          const userProfile = await apiService.getProfile();
+          setUser(userProfile);
+        } catch (error) {
+          console.error('Failed to load user profile from API:', error);
+          // Fallback to localStorage data
+          const userData = {
+            email: userEmail,
+            name: localStorage.getItem('userName') || 'User',
+            role: localStorage.getItem('userRole') || 'customer',
+            gender: 'Not specified',
+            age: 'Not specified',
+            createdAt: new Date().toISOString() // Fallback to current date
+          };
+          setUser(userData);
+        }
+        
+        // Get user's booking history
+        console.log('Loading bookings for user:', userEmail);
+        const userBookingHistory = await apiService.getUserBookings();
+        console.log('Loaded user bookings:', userBookingHistory);
+        
+        // Enrich bookings with property details
+        const enrichedBookings = await Promise.all(
+          userBookingHistory.map(async (booking) => {
+            try {
+              // Get property details for each booking
+              const propertyDetails = await apiService.getPropertyById(booking.propertyId);
+              return {
+                ...booking,
+                property: propertyDetails
+              };
+            } catch (error) {
+              console.error('Failed to load property details for booking:', booking.id);
+              return booking;
+            }
+          })
+        );
+        
+        setUserBookings(enrichedBookings);
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+        // Don't navigate to login on profile load error, just show empty bookings
+        setUserBookings([]);
+      }
+    };
+    
+    loadUserProfile();
   }, [navigate]);
 
   const showToast = (message, type = 'error') => {
@@ -116,21 +165,15 @@ const Profile = () => {
               <div className="mb-4">
                 <h5 className="fw-bold mb-3">Profile Information</h5>
                 <div className="row g-3">
-                  <div className="col-6">
+                  <div className="col-12">
                     <label className="form-label text-muted">Role</label>
                     <p className="fw-semibold mb-0">{user.role === 'property_owner' ? 'Property Owner' : 'Customer'}</p>
                   </div>
-                  <div className="col-6">
-                    <label className="form-label text-muted">Gender</label>
-                    <p className="fw-semibold mb-0">{user.gender || 'Not specified'}</p>
-                  </div>
-                  <div className="col-6">
-                    <label className="form-label text-muted">Age</label>
-                    <p className="fw-semibold mb-0">{user.age || 'Not specified'}</p>
-                  </div>
-                  <div className="col-6">
+                  <div className="col-12">
                     <label className="form-label text-muted">Member Since</label>
-                    <p className="fw-semibold mb-0">2024</p>
+                    <p className="fw-semibold mb-0">
+                      {user.createdAt ? new Date(user.createdAt).getFullYear() : '2026'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -141,64 +184,109 @@ const Profile = () => {
                 {userBookings.length > 0 ? (
                   <div className="row g-3">
                     {userBookings.map((booking, index) => (
-                      <div key={booking.bookingId || index} className="col-12">
+                      <div key={booking.id || index} className="col-12">
                         <div className="card border">
                           <div className="card-body p-3">
                             <div className="row align-items-center">
                               <div className="col-md-3">
                                 <img
-                                  src={booking.image}
-                                  alt={booking.title}
+                                  src={booking.property?.images?.[0] || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400'}
+                                  alt={booking.property?.title || 'Property'}
                                   className="img-fluid rounded"
                                   style={{ height: '60px', objectFit: 'cover', width: '100%' }}
                                 />
                               </div>
                               <div className="col-md-6">
-                                <h6 className="fw-bold mb-1">{booking.title}</h6>
+                                <h6 className="fw-bold mb-1">{booking.property?.title || 'Property'}</h6>
                                 <p className="text-muted mb-1">
                                   <i className="fas fa-map-marker-alt me-1"></i>
-                                  {booking.location}
+                                  {booking.property?.location || 'Location'}
                                 </p>
                                 <div className="d-flex align-items-center mb-1">
                                   <div className="text-warning me-2">
                                     {[...Array(5)].map((_, i) => (
-                                      <i key={i} className={`fas fa-star ${i < Math.floor(booking.rating || 4.2) ? '' : 'text-muted'}`}></i>
+                                      <i key={i} className={`fas fa-star ${i < (booking.property?.averageRating || 0) ? '' : 'text-muted'}`}></i>
                                     ))}
                                   </div>
-                                  <small className="text-muted">{(booking.rating || 4.2).toFixed(1)}</small>
+                                  <small className="text-muted">{booking.property?.averageRating?.toFixed(1) || '0.0'} ({booking.property?.reviewCount || 0} reviews)</small>
                                 </div>
                                 <small className="text-muted">
-                                  {booking.checkIn} - {booking.checkOut} • {booking.nights} night(s)
+                                  {booking.checkInDate} - {booking.checkOutDate} • {booking.nights} night(s)
                                 </small>
                               </div>
                               <div className="col-md-3 text-end">
-                                <p className="fw-bold text-primary mb-2">₹{booking.totalPrice?.toLocaleString()}</p>
+                                <p className="fw-bold text-primary mb-2">₹{booking.totalAmount?.toLocaleString()}</p>
                                 <div className="d-flex flex-column align-items-end">
-                                  {booking.status === 'Cancelled' ? (
+                                  {booking.status === 'CANCELLED' ? (
                                     <span className="badge bg-danger fs-6 px-3 py-2">
                                       <i className="fas fa-times-circle me-1"></i>
                                       Cancelled
                                     </span>
                                   ) : (
                                     <>
-                                      <span className="badge bg-warning text-dark mb-2 fs-6 px-3 py-2">
-                                        <i className="fas fa-clock me-1"></i>
-                                        Upcoming
+                                      <span className="badge bg-danger fs-6 px-3 py-2">
+                                        <i className="fas fa-check-circle me-1"></i>
+                                        {booking.status || 'Confirmed'}
                                       </span>
-                                      <button 
-                                        className="btn btn-outline-danger btn-sm d-flex align-items-center"
-                                        onClick={() => {
-                                          if (window.confirm('Are you sure you want to cancel this booking?')) {
-                                            dataStore.cancelBooking(booking.bookingId);
-                                            const updatedBookings = dataStore.getAllBookings().filter(b => b.userId === user.email);
-                                            setUserBookings(updatedBookings);
-                                            showToast('Booking cancelled successfully', 'success');
-                                          }
-                                        }}
-                                      >
-                                        <i className="fas fa-ban me-1"></i>
-                                        Cancel
-                                      </button>
+                                      {(() => {
+                                        const today = new Date();
+                                        const checkInDate = new Date(booking.checkInDate);
+                                        const checkOutDate = new Date(booking.checkOutDate);
+                                        const timeDiff = checkInDate.getTime() - today.getTime();
+                                        const hoursDiff = timeDiff / (1000 * 3600);
+                                        const isCompleted = today > checkOutDate;
+                                        
+                                        if (hoursDiff > 48) {
+                                          return (
+                                            <button 
+                                              className="btn btn-outline-danger btn-sm d-flex align-items-center mt-2"
+                                              onClick={async () => {
+                                                try {
+                                                  await apiService.cancelBooking(booking.id);
+                                                  const updatedBookings = await apiService.getUserBookings();
+                                                  const enrichedBookings = await Promise.all(
+                                                    updatedBookings.map(async (b) => {
+                                                      try {
+                                                        const propertyDetails = await apiService.getPropertyById(b.propertyId);
+                                                        return { ...b, property: propertyDetails };
+                                                      } catch (error) {
+                                                        return b;
+                                                      }
+                                                    })
+                                                  );
+                                                  setUserBookings(enrichedBookings);
+                                                  showToast('Booking cancelled successfully!', 'success');
+                                                } catch (error) {
+                                                  showToast(`${error.message}`, 'error');
+                                                }
+                                              }}
+                                            >
+                                              <i className="fas fa-ban me-1"></i>
+                                              Cancel
+                                            </button>
+                                          );
+                                        } else if (isCompleted) {
+                                          return (
+                                            <button 
+                                              className="btn btn-outline-warning btn-sm d-flex align-items-center mt-2"
+                                              onClick={() => {
+                                                setSelectedBooking(booking);
+                                                setShowRatingModal(true);
+                                              }}
+                                            >
+                                              <i className="fas fa-star me-1"></i>
+                                              Rate Property
+                                            </button>
+                                          );
+                                        } else {
+                                          return (
+                                            <small className="text-muted mt-2">
+                                              <i className="fas fa-info-circle me-1"></i>
+                                              Cannot cancel within 48 hours
+                                            </small>
+                                          );
+                                        }
+                                      })()} 
                                     </>
                                   )}
                                 </div>
@@ -221,20 +309,23 @@ const Profile = () => {
               {user.role !== 'admin' && user.role !== 'property_owner' && (
                 <div className="mb-4">
                   <h5 className="fw-bold mb-3">Submit Complaint</h5>
-                  <form onSubmit={(e) => {
+                  <form onSubmit={async (e) => {
                     e.preventDefault();
                     const formData = new FormData(e.target);
-                    const complaint = {
-                      id: Date.now(),
-                      customer: user.name,
-                      property: formData.get('property'),
-                      issue: formData.get('issue'),
-                      status: 'Pending',
-                      date: new Date().toISOString().split('T')[0]
-                    };
-                    dataStore.addComplaint(complaint);
-                    showToast('Complaint submitted successfully!', 'success');
-                    e.target.reset();
+                    try {
+                      const complaintData = {
+                        userEmail: user.email,
+                        propertyId: userBookings.length > 0 ? userBookings[0].propertyId : 15,
+                        issue: formData.get('issue')
+                      };
+                      console.log('Submitting complaint:', complaintData);
+                      await apiService.createComplaint(complaintData);
+                      showToast('Complaint submitted successfully!', 'success');
+                      e.target.reset();
+                    } catch (error) {
+                      console.error('Complaint submission error:', error);
+                      showToast(`Failed to submit complaint: ${error.message}`, 'error');
+                    }
                   }}>
                     <div className="mb-3">
                       <label className="form-label">Property Name</label>
@@ -349,6 +440,20 @@ const Profile = () => {
         message={toast.message}
         type={toast.type}
         onClose={() => setToast({ show: false, message: '', type: 'error' })}
+      />
+
+      <RatingModal
+        show={showRatingModal}
+        onClose={() => {
+          setShowRatingModal(false);
+          setSelectedBooking(null);
+        }}
+        booking={selectedBooking}
+        onRatingSubmitted={(message) => {
+          showToast(message, 'success');
+          setShowRatingModal(false);
+          setSelectedBooking(null);
+        }}
       />
     </div>
   );

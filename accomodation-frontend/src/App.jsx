@@ -15,6 +15,7 @@ import AdminDashboard from './components/Admin/AdminDashboard';
 import ContactUs from './components/Contact/ContactUs';
 import ConfirmBookingWrapper from './components/ConfirmBooking/ConfirmBookingWrapper';
 import ProtectedRoute from './components/Common/ProtectedRoute';
+import IntegrationTest from './components/Common/IntegrationTest';
 import Footer from './components/Footer/Footer';
 
 const App = () => {
@@ -46,6 +47,7 @@ const App = () => {
             <AddProperty />
           </ProtectedRoute>
         } />
+        <Route path="integration-test" element={<IntegrationTest />} />
         
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

@@ -10,7 +10,7 @@ const HelpCenter = ({ onBack }) => {
 
   /* ================ CONSTANTS ================ */
   const sections = [
-    { id: 'about', title: 'About StayEase\'s', icon: 'fas fa-info-circle' },
+    { id: 'about', title: 'About StayNJoy', icon: 'fas fa-info-circle' },
     { id: 'booking', title: 'Booking & Reservations', icon: 'fas fa-calendar-check' },
     { id: 'payments', title: 'Payments & Refunds', icon: 'fas fa-credit-card' },
     { id: 'cancellations', title: 'Cancellations', icon: 'fas fa-times-circle' },
@@ -22,18 +22,18 @@ const HelpCenter = ({ onBack }) => {
 
   const content = {
     about: {
-      title: 'About StayEase\'s',
+      title: 'About StayNJoy',
       items: [
         {
-          question: 'What is StayEase\'s?',
-          answer: 'StayEase\'s is a trusted platform connecting travelers with unique accommodations worldwide. We help you find the perfect place to stay, from cozy apartments to luxury villas.'
+          question: 'What is StayNJoy?',
+          answer: 'StayNJoy is a trusted platform connecting travelers with unique accommodations worldwide. We help you find the perfect place to stay, from cozy apartments to luxury villas.'
         },
         {
-          question: 'How does StayEase\'s work?',
+          question: 'How does StayNJoy work?',
           answer: 'Simply search for your destination, browse available properties, read reviews, and book instantly. Our secure platform handles payments and provides 24/7 support.'
         },
         {
-          question: 'Is StayEase\'s safe to use?',
+          question: 'Is StayNJoy safe to use?',
           answer: 'Yes! We verify all properties and hosts, use secure payment processing, and provide comprehensive insurance coverage for your peace of mind.'
         }
       ]
@@ -132,7 +132,7 @@ const HelpCenter = ({ onBack }) => {
         },
         {
           question: 'What are the hosting fees?',
-          answer: 'StayEase\'s charges a 3% host service fee per booking. Guests pay a separate service fee. No upfront costs or monthly fees.'
+          answer: 'StayNJoy charges a 3% host service fee per booking. Guests pay a separate service fee. No upfront costs or monthly fees.'
         },
         {
           question: 'How do I get paid?',
@@ -145,7 +145,7 @@ const HelpCenter = ({ onBack }) => {
       items: [
         {
           question: 'How can I contact support?',
-          answer: 'Reach us via live chat (24/7), email at support@StayEase.com, or phone at 1-800-ROOMM8S. Average response time is under 2 hours.'
+          answer: 'Reach us via live chat (24/7), email at staynjoy@gmail.com, or phone at +91 9988776655. Average response time is under 2 hours.'
         },
         {
           question: 'Do you have emergency support?',
@@ -153,7 +153,7 @@ const HelpCenter = ({ onBack }) => {
         },
         {
           question: 'Where are you located?',
-          answer: 'StayEase\'s headquarters: Pune, Maharashtra. We operate globally with local support teams in major cities.'
+          answer: 'StayNJoy headquarters: Pune, Maharashtra. We operate globally with local support teams in major cities.'
         }
       ]
     }

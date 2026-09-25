@@ -6,7 +6,7 @@ const Privacy = () => {
       <div className="row justify-content-center">
         <div className="col-lg-8">
           <h1 className="fw-bold text-center mb-4">Privacy Policy</h1>
-          <p className="text-center text-muted mb-5">Last updated: January 1, 2024</p>
+          <p className="text-center text-muted mb-5">Last updated: January 1, 2026</p>
           
           <div className="card border-0 shadow-sm mb-4">
             <div className="card-body p-4">
@@ -42,7 +42,7 @@ const Privacy = () => {
             <div className="card-body p-4">
               <h3 className="fw-bold mb-3">Contact Us</h3>
               <p className="text-muted">
-                If you have questions about this Privacy Policy, please contact us at privacy@stayease.com
+                If you have questions about this Privacy Policy, please contact us at privacy@staynjoy.com
               </p>
             </div>
           </div>

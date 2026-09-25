@@ -5,6 +5,7 @@ import PaymentStep from "./PaymentStep";
 import ReviewStep from "./ReviewStep";
 import BookingInfoCard from "./BookingInfoCard";
 import Login from "../Login/Login";
+import Toast from "../Toast/Toast";
 
 // Receipt Component
 const Receipt = ({ bookings = [], selectedPaymentMethod = '' }) => {
@@ -99,6 +100,7 @@ const ConfirmBooking = ({ bookings = [], onBack = () => {} }) => {
   const [showLogin, setShowLogin] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
   const [showReceipt, setShowReceipt] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'error' });
 
   /* ================ EFFECTS ================ */
   useEffect(() => {
@@ -134,6 +136,10 @@ const ConfirmBooking = ({ bookings = [], onBack = () => {} }) => {
 
   const handleBackFromLogin = () => {
     setShowLogin(false);
+  };
+
+  const showToast = (message, type = 'error') => {
+    setToast({ show: true, message, type });
   };
 
   /* ================ EARLY RETURN ================ */
@@ -172,6 +178,7 @@ const ConfirmBooking = ({ bookings = [], onBack = () => {} }) => {
                 bookings={bookings}
                 selectedPaymentMethod={selectedPaymentMethod}
                 onConfirmPayment={() => setShowReceipt(true)}
+                showToast={showToast}
               />
             </>
           )}
@@ -225,6 +232,13 @@ const ConfirmBooking = ({ bookings = [], onBack = () => {} }) => {
           </div>
         </div>
       )}
+
+      <Toast
+        show={toast.show}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ show: false, message: '', type: 'error' })}
+      />
     </div>
   );
 };

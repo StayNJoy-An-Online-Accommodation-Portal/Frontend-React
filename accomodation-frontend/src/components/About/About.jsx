@@ -5,13 +5,13 @@ const About = () => {
     <div className="container py-5">
       <div className="row justify-content-center">
         <div className="col-lg-8">
-          <h1 className="fw-bold text-center mb-4">About StayEase</h1>
+          <h1 className="fw-bold text-center mb-4">About StayNJoy</h1>
           
           <div className="card border-0 shadow-sm mb-4">
             <div className="card-body p-4">
               <h3 className="fw-bold mb-3">Our Mission</h3>
               <p className="text-muted">
-                StayEase connects travelers with unique accommodations worldwide. Founded in 2020, 
+                StayNJoy connects travelers with unique accommodations worldwide. Founded in 2026, 
                 we've helped over 1 million guests find their perfect stay.
               </p>
             </div>

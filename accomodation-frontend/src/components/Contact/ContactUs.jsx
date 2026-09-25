@@ -92,12 +92,12 @@ const ContactUs = () => {
             <div className="col-md-4">
               <i className="fas fa-envelope fs-2 text-primary mb-3"></i>
               <h5>Email</h5>
-              <p className="text-muted">support@stayease.com</p>
+              <p className="text-muted">staynjoy@gmail.com</p>
             </div>
             <div className="col-md-4">
               <i className="fas fa-phone fs-2 text-primary mb-3"></i>
               <h5>Phone</h5>
-              <p className="text-muted">1-800-STAYEASE</p>
+              <p className="text-muted">+91 9988776655</p>
             </div>
             <div className="col-md-4">
               <i className="fas fa-clock fs-2 text-primary mb-3"></i>

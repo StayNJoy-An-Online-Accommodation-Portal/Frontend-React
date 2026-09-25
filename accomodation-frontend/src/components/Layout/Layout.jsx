@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import AppLayout from './AppLayout';
 import Navbar from '../Navbar/Navbar';
-import { dataStore } from '../../utils/dataStore';
+import { dataStore } from '../../utils/enhancedDataStore';
 
 const Layout = () => {
   const navigate = useNavigate();
@@ -65,31 +65,37 @@ const Layout = () => {
     }
   };
 
-  const handlePropertyAdded = (newProperty) => {
-    dataStore.addRoom(newProperty);
+  const handlePropertyAdded = async (newProperty) => {
+    try {
+      await dataStore.addRoom(newProperty);
+    } catch (error) {
+      console.error('Failed to add property:', error);
+    }
   };
 
   return (
-    <AppLayout 
-      navbar={
-        <Navbar
-          key={authKey}
-          onSearch={handleSearch}
-          onClearSearch={handleClearSearch}
-          onLoginClick={handleNavbarLogin}
-          onLogoutClick={handleLogout}
-          onHelpClick={handleHelpCenter}
-          onPropertyOwnerClick={handlePropertyOwner}
-          onAdminClick={handleAdmin}
-          onProfileClick={handleProfile}
-          onLogoClick={handleLogoClick}
-          showSearch={showSearch}
-        />
-      }
-      showSearch={showSearch}
-    >
-      <Outlet context={{ handlePropertyAdded, authKey, setAuthKey }} />
-    </AppLayout>
+    <>
+      <AppLayout 
+        navbar={
+          <Navbar
+            key={authKey}
+            onSearch={handleSearch}
+            onClearSearch={handleClearSearch}
+            onLoginClick={handleNavbarLogin}
+            onLogoutClick={handleLogout}
+            onHelpClick={handleHelpCenter}
+            onPropertyOwnerClick={handlePropertyOwner}
+            onAdminClick={handleAdmin}
+            onProfileClick={handleProfile}
+            onLogoClick={handleLogoClick}
+            showSearch={showSearch}
+          />
+        }
+        showSearch={showSearch}
+      >
+        <Outlet context={{ handlePropertyAdded, authKey, setAuthKey }} />
+      </AppLayout>
+    </>
   );
 };
 

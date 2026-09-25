@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { authUtils } from "../../utils/auth";
 import { mockUsers } from "../../data/mockData";
+import apiService from "../../services/api";
 import Toast from "../Toast/Toast";
 
 const Login = () => {
@@ -31,7 +32,7 @@ const Login = () => {
     setToast({ show: true, message, type });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!email.trim()) {
@@ -50,98 +51,106 @@ const Login = () => {
       return;
     }
     
-    if (isSignUp) {
-      if (!firstName.trim()) {
-        showToast('First name is required', 'error');
-        return;
-      }
-      
-      if (!lastName.trim()) {
-        showToast('Last name is required', 'error');
-        return;
-      }
-      
-      if (!confirmPassword.trim()) {
-        showToast('Please confirm your password', 'error');
-        return;
-      }
-      
-      if (!gender) {
-        showToast('Please select your gender', 'error');
-        return;
-      }
-      
-      if (!age.trim()) {
-        showToast('Age is required', 'error');
-        return;
-      }
-      
-      if (!mobile.trim()) {
-        showToast('Mobile number is required', 'error');
-        return;
-      }
-      
-      const mobileRegex = /^[0-9]{10}$/;
-      if (!mobileRegex.test(mobile)) {
-        showToast('Please enter a valid 10-digit mobile number', 'error');
-        return;
-      }
-      
-      if (password !== confirmPassword) {
-        showToast('Passwords do not match', 'error');
-        return;
-      }
-      
-      if (mockUsers.find(u => u.email === email)) {
-        showToast('Email already exists', 'error');
-        return;
-      }
-      
-      const newUser = {
-        id: Date.now(),
-        email,
-        password,
-        name: `${firstName} ${lastName}`,
-        role,
-        gender,
-        age: parseInt(age),
-        mobile
-      };
-      
-      mockUsers.push(newUser);
-      authUtils.login(newUser);
-      setAuthKey(prev => prev + 1);
-      showToast('Account created successfully!', 'success');
-      
-      setTimeout(() => {
-        const redirectPath = authUtils.getRedirectAfterLogin();
-        if (redirectPath) {
-          navigate(redirectPath);
-        } else {
-          // Always redirect to home page for all users after signup
-          navigate('/');
+    try {
+      if (isSignUp) {
+        if (!firstName.trim()) {
+          showToast('First name is required', 'error');
+          return;
         }
-      }, 1500);
-    } else {
-      const user = mockUsers.find(u => u.email === email && u.password === password);
-      
-      if (user) {
-        authUtils.login(user);
-        setAuthKey(prev => prev + 1);
-        showToast('Login successful!', 'success');
         
-        setTimeout(() => {
-          const redirectPath = authUtils.getRedirectAfterLogin();
-          if (redirectPath) {
-            navigate(redirectPath);
-          } else {
-            // Always redirect to home page for all users after login
-            navigate('/');
-          }
-        }, 1500);
+        if (!lastName.trim()) {
+          showToast('Last name is required', 'error');
+          return;
+        }
+        
+        if (!confirmPassword.trim()) {
+          showToast('Please confirm your password', 'error');
+          return;
+        }
+        
+        if (!gender) {
+          showToast('Please select your gender', 'error');
+          return;
+        }
+        
+        if (!age.trim()) {
+          showToast('Age is required', 'error');
+          return;
+        }
+        
+        if (!mobile.trim()) {
+          showToast('Mobile number is required', 'error');
+          return;
+        }
+        
+        const mobileRegex = /^[0-9]{10}$/;
+        if (!mobileRegex.test(mobile)) {
+          showToast('Please enter a valid 10-digit mobile number', 'error');
+          return;
+        }
+        
+        if (password !== confirmPassword) {
+          showToast('Passwords do not match', 'error');
+          return;
+        }
+        
+        const userData = {
+          email,
+          password,
+          firstName,
+          lastName,
+          role: role.toUpperCase(),
+          gender: gender.toUpperCase(),
+          age: parseInt(age),
+          mobile
+        };
+        
+        try {
+          const response = await apiService.register(userData);
+          const userForAuth = {
+            email: response.email,
+            name: response.name,
+            role: response.role.toLowerCase()
+          };
+          
+          authUtils.login(userForAuth);
+          setAuthKey(prev => prev + 1);
+          showToast('Account created successfully!', 'success');
+          
+          setTimeout(() => {
+            const redirectPath = authUtils.getRedirectAfterLogin();
+            navigate(redirectPath || '/');
+          }, 1500);
+        } catch (error) {
+          showToast(error.message || 'Registration failed', 'error');
+        }
       } else {
-        showToast('Invalid email or password', 'error');
+        try {
+          const response = await apiService.login({ email, password });
+          const userForAuth = {
+            email: response.user.email,
+            name: response.user.name,
+            role: response.user.role.toLowerCase()
+          };
+          
+          authUtils.login(userForAuth);
+          setAuthKey(prev => prev + 1);
+          showToast('Login successful!', 'success');
+          
+          setTimeout(() => {
+            const redirectPath = authUtils.getRedirectAfterLogin();
+            navigate(redirectPath || '/');
+          }, 1500);
+        } catch (error) {
+          if (error.message.includes('blocked')) {
+            showToast('Your account is blocked. Please contact us for assistance.', 'error');
+          } else {
+            showToast('Invalid email or password', 'error');
+          }
+        }
       }
+    } catch (error) {
+      showToast('An unexpected error occurred. Please try again.', 'error');
     }
   };
 

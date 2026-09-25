@@ -44,8 +44,11 @@ const RoomDetails = ({ room, show, onClose, onBook, existingBookings = [] }) => 
     const selectedCheckOut = new Date(selectedCheckIn);
     selectedCheckOut.setDate(selectedCheckIn.getDate() + nights);
 
+    // Ensure existingBookings is an array
+    const bookingsArray = Array.isArray(existingBookings) ? existingBookings : [];
+    
     // Filter bookings for this specific room and exclude cancelled bookings
-    const roomBookings = existingBookings.filter(booking => 
+    const roomBookings = bookingsArray.filter(booking => 
       booking.id === room.id && booking.status !== 'Cancelled'
     );
 
